@@ -2,15 +2,30 @@ import {set, reset} from 'mockdate';
 
 class CheckLastEventStatus {
   constructor(private readonly repository: LastEventRepository) {}
-  async execute(input: {groupId: string}): Promise<EventStatus> {
+  async execute(input: {groupId: string}): Promise<EventStatusType> {
     const event = await this.repository.getLastEvent({groupId: input.groupId});
-    if (event === undefined) return EventStatus.CLOSED;
+    return new EventStatus(event).value;
+  }
+}
+
+class EventStatus {
+  value: EventStatusType;
+
+  constructor(private readonly event?: IEvent) {
+    if (event === undefined) {
+      this.value = EventStatusType.CLOSED;
+      return;
+    };
     const now = new Date();
-    if (event.endDate >= now) return EventStatus.ACTIVE;
+    if (event.endDate >= now) {
+      this.value = EventStatusType.ACTIVE;
+      return;
+    }
     const reviewTimeInMilliseconds = event.reviewTimeInHours * 60 * 60 * 1000;
     const reviewEndDate = new Date(event.endDate.getTime() + reviewTimeInMilliseconds);
-    if (now <= reviewEndDate) return EventStatus.IN_REVIEW;
-    return EventStatus.CLOSED;
+    this.value = now <= reviewEndDate
+      ? EventStatusType.IN_REVIEW
+      : EventStatusType.CLOSED;
   }
 }
 
@@ -33,7 +48,7 @@ class LastEventRepositorySpy implements LastEventRepository {
   }
 }
 
-enum EventStatus {
+enum EventStatusType {
   CLOSED = 'closed',
   ACTIVE = 'active',
   IN_REVIEW = 'in_review',
@@ -90,7 +105,7 @@ describe('CheckLastEventStatus use case', () => {
     
     const result = await sut.execute({groupId});
     
-    expect(result).toBe(EventStatus.CLOSED);
+    expect(result).toBe(EventStatusType.CLOSED);
   });
 
   it('should return status active if event has not ended', async () => {
@@ -102,7 +117,7 @@ describe('CheckLastEventStatus use case', () => {
     
     const result = await sut.execute({groupId});
     
-    expect(result).toBe(EventStatus.ACTIVE);
+    expect(result).toBe(EventStatusType.ACTIVE);
   });
 
   it('should return status active if event end time is the same as now', async () => {
@@ -114,7 +129,7 @@ describe('CheckLastEventStatus use case', () => {
     
     const result = await sut.execute({groupId});
     
-    expect(result).toBe(EventStatus.ACTIVE);
+    expect(result).toBe(EventStatusType.ACTIVE);
   });
 
   it('should return status in_review if event is during review time', async () => {
@@ -126,7 +141,7 @@ describe('CheckLastEventStatus use case', () => {
     
     const result = await sut.execute({groupId});
     
-    expect(result).toBe(EventStatus.IN_REVIEW);
+    expect(result).toBe(EventStatusType.IN_REVIEW);
   });
 
   it('should return status in_review if now is before end of review time', async () => {
@@ -140,7 +155,7 @@ describe('CheckLastEventStatus use case', () => {
     
     const result = await sut.execute({groupId});
     
-    expect(result).toBe(EventStatus.IN_REVIEW);
+    expect(result).toBe(EventStatusType.IN_REVIEW);
   });
 
   it('should return status in_review if now is equal to end of review time', async () => {
@@ -154,7 +169,7 @@ describe('CheckLastEventStatus use case', () => {
     
     const result = await sut.execute({groupId});
     
-    expect(result).toBe(EventStatus.IN_REVIEW);
+    expect(result).toBe(EventStatusType.IN_REVIEW);
   });
 
   it('should return status closed if now is after end of review time', async () => {
@@ -168,6 +183,6 @@ describe('CheckLastEventStatus use case', () => {
     
     const result = await sut.execute({groupId});
     
-    expect(result).toBe(EventStatus.CLOSED);
+    expect(result).toBe(EventStatusType.CLOSED);
   });
 });
