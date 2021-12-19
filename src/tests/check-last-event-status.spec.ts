@@ -7,7 +7,10 @@ class CheckLastEventStatus {
     if (event === undefined) return EventStatus.CLOSED;
     const now = new Date();
     if (event.endDate >= now) return EventStatus.ACTIVE;
-    return EventStatus.IN_REVIEW;
+    const reviewTimeInMilliseconds = event.reviewTimeInHours * 60 * 60 * 1000;
+    const reviewEndDate = new Date(event.endDate.getTime() + reviewTimeInMilliseconds);
+    if (now <= reviewEndDate) return EventStatus.IN_REVIEW;
+    return EventStatus.CLOSED;
   }
 }
 
@@ -47,9 +50,12 @@ const makeSut = (): SutOutput => {
   return {sut, lastEventRepositorySpy};
 }
 
-// new Date().getTime() + 1 => NOW + 1 (in the future)
-// new Date().getTime() => NOW (same time)
-// new Date().getTime() - 1 => NOW - 1 (in the past)
+// new Date().getTime() + 1 => NOW + 1
+// new Date().getTime() => NOW
+// new Date().getTime() - 1 => NOW - 1
+// new Date().getTime() - reviewTimeInMilliseconds => NOW
+// new Date().getTime() - reviewTimeInMilliseconds + 1 => NOW + 1
+// new Date().getTime() - reviewTimeInMilliseconds - 1 => NOW - 1
 
 describe('CheckLastEventStatus use case', () => {
   const groupId = 'any-group-id';
@@ -116,6 +122,34 @@ describe('CheckLastEventStatus use case', () => {
     lastEventRepositorySpy.output = {
       endDate: new Date(new Date().getTime() - 1),
       reviewTimeInHours: 1
+    };
+    
+    const result = await sut.execute({groupId});
+    
+    expect(result).toBe(EventStatus.IN_REVIEW);
+  });
+
+  it('should return status in_review if now is before end of review time', async () => {
+    const {sut, lastEventRepositorySpy} = makeSut();
+    const reviewTimeInHours = 1;
+    const reviewTimeInMilliseconds = reviewTimeInHours * 60 * 60 * 1000;
+    lastEventRepositorySpy.output = {
+      endDate: new Date(new Date().getTime() - reviewTimeInMilliseconds + 1),
+      reviewTimeInHours
+    };
+    
+    const result = await sut.execute({groupId});
+    
+    expect(result).toBe(EventStatus.IN_REVIEW);
+  });
+
+  it('should return status in_review if now is equal to end of review time', async () => {
+    const {sut, lastEventRepositorySpy} = makeSut();
+    const reviewTimeInHours = 1;
+    const reviewTimeInMilliseconds = reviewTimeInHours * 60 * 60 * 1000;
+    lastEventRepositorySpy.output = {
+      endDate: new Date(new Date().getTime() - reviewTimeInMilliseconds),
+      reviewTimeInHours
     };
     
     const result = await sut.execute({groupId});
