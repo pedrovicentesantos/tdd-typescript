@@ -43,6 +43,9 @@ const makeSut = (): SutOutput => {
   return {sut, lastEventRepositorySpy};
 }
 
+// new Date().getTime() + 1 => NOW + 1 (in the future)
+// new Date().getTime() => NOW (same time)
+
 describe('CheckLastEventStatus use case', () => {
   const groupId = 'any-group-id';
   beforeAll(() => {
@@ -83,6 +86,17 @@ describe('CheckLastEventStatus use case', () => {
     const {sut, lastEventRepositorySpy} = makeSut();
     lastEventRepositorySpy.output = {
       endDate: new Date(new Date().getTime() + 1)
+    };
+    
+    const result = await sut.execute({groupId});
+    
+    expect(result).toBe(EventStatus.ACTIVE);
+  });
+
+  it('should return status active if event end time is the same as now', async () => {
+    const {sut, lastEventRepositorySpy} = makeSut();
+    lastEventRepositorySpy.output = {
+      endDate: new Date(new Date().getTime())
     };
     
     const result = await sut.execute({groupId});
