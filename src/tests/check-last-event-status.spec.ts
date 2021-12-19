@@ -156,4 +156,18 @@ describe('CheckLastEventStatus use case', () => {
     
     expect(result).toBe(EventStatus.IN_REVIEW);
   });
+
+  it('should return status closed if now is after end of review time', async () => {
+    const {sut, lastEventRepositorySpy} = makeSut();
+    const reviewTimeInHours = 1;
+    const reviewTimeInMilliseconds = reviewTimeInHours * 60 * 60 * 1000;
+    lastEventRepositorySpy.output = {
+      endDate: new Date(new Date().getTime() - reviewTimeInMilliseconds - 1),
+      reviewTimeInHours
+    };
+    
+    const result = await sut.execute({groupId});
+    
+    expect(result).toBe(EventStatus.CLOSED);
+  });
 });
