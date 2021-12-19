@@ -1,0 +1,19 @@
+{
+  "name": "tdd-typescript",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/jest": "^27.0.3",
+    "jest": "^27.4.5",
+    "mockdate": "^3.0.5",
+    "ts-jest": "^27.1.2",
+    "typescript": "^4.5.4"
+  }
+}
