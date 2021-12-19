@@ -11,7 +11,7 @@ class CheckLastEventStatus {
 class EventStatus {
   value: EventStatusType;
 
-  constructor(private readonly event?: IEvent) {
+  constructor(event?: IEvent) {
     if (event === undefined) {
       this.value = EventStatusType.CLOSED;
       return;
